@@ -273,10 +273,18 @@ if st.button("🔍 Generate Policy Insight"):
     else:
         st.warning("Please enter a question.")
 
-# --- FOOTER ---
+# --- FOOTER SECTION ---
 st.markdown("""
-<div class="footer">
-    Built with by <strong>Gopichand</strong> | Project Samarth — Build For Bharat Fellowship 2026 Cohort (Data Science)<br>
-    🌐 <a href="https://www.linkedin.com/in/gopichand16" target="_blank">Connect on LinkedIn</a> | 📧 gopichandchalla516@gmail.com
+<hr style="border: 1px solid #ccc; margin-top: 40px; margin-bottom: 10px;">
+
+<div style="
+    text-align: center; 
+    color: #555; 
+    font-size: 15px; 
+    padding: 10px 0;
+    line-height: 1.6;
+">
+    <strong>Built with by Gopichand</strong> — <em>Where open data becomes open wisdom.</em><br>
+    <span style="font-size: 13px; color: #777;">© 2025 Project Samarth | Empowering Governance with AI & Insight</span>
 </div>
 """, unsafe_allow_html=True)
