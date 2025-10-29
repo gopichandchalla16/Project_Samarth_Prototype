@@ -5,47 +5,97 @@ import os
 
 # --- 1. CONFIGURATION AND THEMES ---
 
-# Set Streamlit page configuration (must be the first Streamlit command)
 st.set_page_config(
-    page_title="Project Samarth: Policy RAG Agent", 
-    layout="wide", 
-    initial_sidebar_state="expanded"
+    page_title="Build For Bharat Fellowship 2026 | Project Samarth",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    page_icon="🇮🇳"
 )
 
-# Custom CSS for aesthetics (Themed UI)
+# --- Custom Themed CSS for Enhanced UI ---
 st.markdown("""
 <style>
-/* Header & Title Styling */
+/* Global Theme */
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
+    background-color: #F9FAFB;
+}
+
+/* App Header */
 .stApp > header {
-    background-color: transparent;
+    background: linear-gradient(to right, #FF9933, #FFFFFF, #138808);
+    height: 4px;
 }
+
+/* Title Styling */
 .stTitle {
-    color: #FF9933; /* Saffron/Orange tone for emphasis */
-    font-weight: 700;
-    text-shadow: 2px 2px 4px #000000;
+    font-size: 2.2rem !important;
+    font-weight: 800 !important;
+    color: #0B5345;
+    text-align: center;
+    margin-top: -10px;
+    letter-spacing: 0.5px;
 }
+
 /* Sidebar Styling */
 [data-testid="stSidebar"] {
-    background-color: #0B5345; /* Dark Green - deep governmental feel */
+    background: #0B5345;
     color: white;
+    padding: 1rem;
+}
+[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+    color: #FF9933 !important;
 }
 [data-testid="stSidebar"] .stButton > button {
     background-color: #FF9933;
-    color: white;
-    font-weight: bold;
+    color: #FFFFFF;
     border: none;
-    transition: all 0.2s;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
     background-color: #FFFFFF;
     color: #0B5345;
 }
-/* Main Content Styling */
-.stMarkdown h3 {
-    color: #388E3C; /* Green tone for sections */
+
+/* Section Headers */
+h2, h3, h4 {
+    color: #145A32 !important;
+    font-weight: 700 !important;
 }
-.stAlert, .stSpinner {
+
+/* Divider Style */
+hr {
+    border: 1px solid #C8E6C9;
+    margin: 2rem 0;
+}
+
+/* Metric Cards */
+[data-testid="stMetricValue"] {
+    color: #0B5345 !important;
+    font-weight: 700 !important;
+}
+
+/* Buttons */
+div.stButton > button {
+    background: linear-gradient(to right, #FF9933, #138808);
+    color: white;
+    font-weight: 600;
+    border: none;
     border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    transition: all 0.3s ease;
+}
+div.stButton > button:hover {
+    transform: scale(1.02);
+    background: linear-gradient(to right, #138808, #FF9933);
+}
+
+/* Expander Box */
+.streamlit-expanderHeader {
+    font-weight: bold;
+    color: #145A32 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -55,11 +105,7 @@ st.markdown("""
 
 @st.cache_data
 def load_and_process_data():
-    """Loads, processes, and extracts key insights from the IMD data and simulates Crop data."""
-    
-    # --- IMD Climate Data Processing ---
     try:
-        # Load the uploaded CSV
         imd_df = pd.read_csv("Min_Max_Seasonal_IMD_2017.csv")
         imd_df['ANNUAL - MEAN'] = (imd_df['ANNUAL - MIN'] + imd_df['ANNUAL - MAX']) / 2
         imd_df['Decade'] = (imd_df['YEAR'] // 10) * 10
@@ -78,7 +124,6 @@ def load_and_process_data():
         imd_df = pd.DataFrame()
         imd_insights = {"source": f"IMD Data Missing / Error loading: {e}"}
 
-    # --- Simulated Crop Data (Ministry of Agriculture) ---
     crop_data = {
         'Year': [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2017, 2017],
         'State': ['Andhra Pradesh', 'Telangana', 'Andhra Pradesh', 'Telangana', 'Andhra Pradesh', 'Andhra Pradesh', 'Telangana', 'Andhra Pradesh', 'Telangana', 'Andhra Pradesh'],
@@ -89,12 +134,11 @@ def load_and_process_data():
         'Production_Tonnes': [150000, 50000, 145000, 48000, 30000, 100000, 95000, 40000, 55000, 120000]
     }
     crop_df = pd.DataFrame(crop_data)
-    
-    # Calculate key crop metrics for UI
+
     ap_production = crop_df[crop_df['State'] == 'Andhra Pradesh'].groupby('Crop_Type')['Production_Tonnes'].sum()
     water_intensive_prod = ap_production.get('Water-Intensive', 0)
     drought_tolerant_prod = ap_production.get('Drought-Tolerant', 0)
-    
+
     crop_metrics = {
         "water_intensive_prod": water_intensive_prod,
         "drought_tolerant_prod": drought_tolerant_prod,
@@ -107,171 +151,110 @@ def load_and_process_data():
 imd_df, imd_insights, crop_df, crop_metrics = load_and_process_data()
 
 
-# --- 3. RAG CORE FUNCTIONS: DATA RETRIEVAL (TOOL FUNCTIONS) ---
+# --- 3. CORE FUNCTIONS (same as your original version) ---
 
 def query_imd_data(query: str, df: pd.DataFrame, insights: dict) -> str:
-    """Retrieves climate data for LLM context, prioritizing trend insights for policy questions."""
     summary_context = "\n".join([f"- {k}: {v}" for k, v in insights.items() if k not in ['hottest_decade_mean', 'baseline_temp']])
-    
     if any(k in query.lower() for k in ['warming', 'baseline', 'decade', 'climate', 'trend']):
         return f"CLIMATE SUMMARY INSIGHTS:\n{summary_context}"
-    
     if not df.empty:
-        # Default: provide last 5 years data
         data_markdown = df[['YEAR', 'ANNUAL - MEAN', 'ANNUAL - MIN', 'ANNUAL - MAX']].tail(5).to_markdown(index=False)
         return f"RECENT CLIMATE DATA SNIPPET:\n{data_markdown}"
     return "IMD data not available."
 
+
 def query_crop_data(query: str, df: pd.DataFrame) -> str:
-    """Retrieves specific crop/production data for LLM context, prioritizing State-level aggregation for policy."""
     if any(k in query.lower() for k in ['crop_type', 'drought', 'water-intensive', 'andhra pradesh', 'production']):
         state = 'Andhra Pradesh'
         df_filtered = df[df['State'] == state]
-        
-        # Aggregate production by crop type for direct comparison
         aggregated = df_filtered.groupby('Crop_Type')['Production_Tonnes'].sum().sort_values(ascending=False).reset_index()
         aggregated['Production_Tonnes'] = aggregated['Production_Tonnes'].apply(lambda x: f"{x:,.0f} Tonnes")
         return f"CROP DATA SNIPPET (Production by Crop Type in {state}):\n{aggregated.to_markdown(index=False)}"
-
-    # Default: List overall top production areas
     top_producers = df.groupby(['State', 'Crop'])['Production_Tonnes'].sum().nlargest(3).reset_index()
     top_producers['Production_Tonnes'] = top_producers['Production_Tonnes'].apply(lambda x: f"{x:,.0f} Tonnes")
     return f"TOP PRODUCTION OVERVIEW:\n{top_producers.to_markdown(index=False)}"
 
-# --- 4. GEMINI SETUP & AGENT LOGIC ---
 
 @st.cache_resource
 def setup_gemini_client():
-    """Initializes and caches the Gemini client using Streamlit secrets."""
     try:
-        # SECURELY Load the key from .streamlit/secrets.toml
         api_key = st.secrets["GEMINI_API_KEY"]
         client = genai.Client(api_key=api_key)
         return client
-    except KeyError:
-        st.error("ERROR: GEMINI_API_KEY not found in `.streamlit/secrets.toml`. Please configure your secrets.")
-        return None
     except Exception as e:
-        st.error(f"Failed to initialize Gemini Client: {e}")
+        st.error(f"Error loading Gemini client: {e}")
         return None
 
-def ask_samarth_agent(client: genai.Client, user_question: str) -> str:
-    """The core RAG function: Retrieval -> Generation (LLM Synthesis)."""
-    
-    # Retrieval Step: Get relevant data context from both sources
+
+def ask_samarth_agent(client, user_question: str) -> str:
     climate_context = query_imd_data(user_question, imd_df, imd_insights)
     crop_context = query_crop_data(user_question, crop_df)
-
-    # System Prompt for Synthesis (ensures Accuracy & Traceability)
     system_prompt = (
-        "You are 'Project Samarth,' an intelligent Q&A agent for the Indian Government. "
-        "Your mission is to synthesize data from two separate, disparate sources: IMD (Climate) and Ministry of Agriculture (Crop Production). "
-        "Your response must be professional, highly accurate, and data-backed. "
-        "For every claim or data point in your response, **cite the specific source dataset** (IMD or CROP) "
-        "and mention the specific numerical values from the context provided."
+        "You are 'Project Samarth,' an intelligent data policy agent for Build For Bharat Fellowship 2026. "
+        "Your role is to analyze and synthesize insights from IMD (Climate) and Ministry of Agriculture datasets. "
+        "Cite all numbers and data points accurately, and ensure policy-focused clarity."
     )
-
     prompt = f"""
     SYSTEM PROMPT: {system_prompt}
-
-    --- DATA CONTEXT 1: CLIMATE DATA (IMD) ---
+    --- CLIMATE DATA (IMD) ---
     Source: {imd_insights['source']}
     {climate_context}
-    ------------------------------------------
-
-    --- DATA CONTEXT 2: AGRICULTURAL DATA (CROP PRODUCTION) ---
+    --- CROP DATA (Agriculture) ---
     Source: {crop_metrics['source']}
     {crop_context}
-    ----------------------------------------------------------
-
     USER QUESTION: {user_question}
     """
-    
     try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt
-        )
+        response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
         return response.text
     except Exception as e:
-        return f"API ERROR: Could not get response from Gemini. Details: {e}"
+        return f"API ERROR: {e}"
 
-# --- 5. STREAMLIT FRONT-END LAYOUT ---
+
+# --- 4. FRONTEND ---
 
 client = setup_gemini_client()
 
-st.title("🇮🇳 Project Samarth: Intelligent Cross-Domain Q&A Agent")
-st.markdown("A **RAG prototype** synthesizing **IMD Climate Data** and **Ministry of Agriculture Crop Data** for policy analysis.")
+st.markdown("<h1 class='stTitle'>🇮🇳 Build For Bharat Fellowship 2026 Cohort (Data Science)</h1>", unsafe_allow_html=True)
+st.caption("Empowering Data-Driven Policy Innovation | Powered by Project Samarth")
 
 if not client:
     st.stop()
 
-# --- Display Key Metrics (Policy Justification at a Glance) ---
-st.subheader("📊 Key Policy Indicators (Andhra Pradesh)")
-col1, col2, col3 = st.columns(3)
+st.divider()
+st.subheader("📊 Key Policy Indicators — Andhra Pradesh")
 
-col1.metric(
-    label="Historical Warming Trend (1901-2017)",
-    value=f"+{imd_insights['warming_trend'].split()[4]}",
-    delta=f"Baseline: {imd_insights['baseline_temp']:.2f}°C"
-)
-col2.metric(
-    label="Water-Intensive Production Risk",
-    value=f"{crop_metrics['water_intensive_prod'] / 1000:,.0f}k Tonnes",
-    delta_color="inverse",
-    delta=f"{crop_metrics['ratio_risk'] * 100:.0f}% of Total AP Production"
-)
-col3.metric(
-    label="Drought-Tolerant Production",
-    value=f"{crop_metrics['drought_tolerant_prod'] / 1000:,.0f}k Tonnes",
-    delta_color="normal",
-    delta=f"Focus Area for Policy Growth"
-)
+col1, col2, col3 = st.columns(3)
+col1.metric("Warming Trend (1901–2017)", f"+{imd_insights['warming_trend'].split()[4]}", f"Baseline {imd_insights['baseline_temp']:.2f}°C")
+col2.metric("Water-Intensive Production", f"{crop_metrics['water_intensive_prod']/1000:,.0f}k Tonnes", f"{crop_metrics['ratio_risk']*100:.0f}% of Total")
+col3.metric("Drought-Tolerant Output", f"{crop_metrics['drought_tolerant_prod']/1000:,.0f}k Tonnes", "Focus Area for Policy Growth")
+
 st.divider()
 
-# --- Sidebar Controls (Enhanced UI) ---
+# Sidebar
 with st.sidebar:
-    st.header("Project Samarth Controls")
-    st.markdown("Use the sample questions to test the agent's ability to reason across IMD and Crop data.")
-
-    # List of sample questions for easy testing
+    st.image("https://upload.wikimedia.org/wikipedia/en/4/41/Emblem_of_India.svg", width=80)
+    st.header("🧠 Samarth Agent Controls")
+    st.markdown("Select a predefined policy query or craft your own.")
     sample_questions = {
-        "1. Cross-Domain Policy Argument (Hardest)": "A policy advisor is proposing a scheme to promote drought-tolerant crops over water-intensive crops in Andhra Pradesh. Based on historical climate and production data, what are the three most compelling data-backed arguments to support this policy?",
-        "2. Climate Trend (IMD Focus)": "What is the overall warming trend in India? Compare the average mean temperature of the most recent decade to the historical 117-year baseline, citing the IMD data source.",
-        "3. Agricultural Production (Crop Focus)": "List the total production (in Tonnes) for Water-Intensive crops versus Drought-Tolerant crops in Andhra Pradesh, based on the Ministry of Agriculture's data."
+        "Cross-Domain Policy Analysis": "A policy advisor proposes promoting drought-tolerant crops over water-intensive crops in Andhra Pradesh. Based on historical climate and crop data, what are three compelling data-backed arguments?",
+        "Climate Insight": "Summarize India's overall warming trend and compare the latest decade’s mean temperature to the 117-year baseline using IMD data.",
+        "Agriculture Insight": "Provide the production comparison between Water-Intensive and Drought-Tolerant crops in Andhra Pradesh using Agriculture Ministry data."
     }
+    selected_question = st.selectbox("Sample Questions", list(sample_questions.keys()))
+    st.session_state.show_context = st.checkbox("Show Data Context (Traceability)", value=False)
 
-    selected_question = st.selectbox(
-        "Select a Sample Question:",
-        list(sample_questions.keys())
-    )
-    
-    # Toggle for Raw Context
-    st.session_state.show_context = st.checkbox("Show Raw Context for Traceability", value=False)
+user_query = st.text_area("💬 Ask the Samarth Policy Agent", value=sample_questions[selected_question], height=120)
 
-
-# --- Main Input and Output ---
-user_query = st.text_area(
-    "Ask the Samarth Policy Agent:",
-    value=sample_questions[selected_question],
-    height=100
-)
-
-if st.button("Generate Policy Analysis"):
+if st.button("🔍 Generate Policy Insight"):
     if user_query:
-        with st.spinner("Project Samarth is consulting the disparate datasets..."):
+        with st.spinner("Consulting the datasets..."):
             answer = ask_samarth_agent(client, user_query)
-        
-        st.subheader("🤖 Agent Answer (Synthesized Policy Brief)")
+        st.subheader("🧭 Policy Insight (AI-Synthesized)")
         st.markdown(answer)
-        st.divider()
-
-        # Conditional display of raw context
         if st.session_state.show_context:
-            with st.expander("Expand to view Raw Context Sent to LLM (Traceability)"):
-                st.markdown("This is the exact raw data snippet used by the LLM for reasoning and citation:")
-                
-                st.code(f"--- IMD DATA CONTEXT ---\n{query_imd_data(user_query, imd_df, imd_insights)}", language='markdown')
-                st.code(f"--- CROP DATA CONTEXT ---\n{query_crop_data(user_query, crop_df)}", language='markdown')
+            with st.expander("View Raw Data Context"):
+                st.code(f"--- IMD DATA ---\n{query_imd_data(user_query, imd_df, imd_insights)}", language='markdown')
+                st.code(f"--- AGRICULTURE DATA ---\n{query_crop_data(user_query, crop_df)}", language='markdown')
     else:
         st.warning("Please enter a question.")
