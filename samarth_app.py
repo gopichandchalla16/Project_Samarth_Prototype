@@ -4,7 +4,6 @@ from google import genai
 import os
 
 # --- 1. CONFIGURATION AND THEMES ---
-
 st.set_page_config(
     page_title="Build For Bharat Fellowship 2026 | Project Samarth",
     layout="wide",
@@ -12,7 +11,7 @@ st.set_page_config(
     page_icon="🇮🇳"
 )
 
-# --- Custom Themed CSS for Enhanced UI ---
+# --- Custom CSS for Enhanced UI + Footer ---
 st.markdown("""
 <style>
 /* Global Theme */
@@ -21,7 +20,7 @@ body {
     background-color: #F9FAFB;
 }
 
-/* App Header */
+/* Header Bar */
 .stApp > header {
     background: linear-gradient(to right, #FF9933, #FFFFFF, #138808);
     height: 4px;
@@ -37,7 +36,7 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Sidebar Styling */
+/* Sidebar */
 [data-testid="stSidebar"] {
     background: #0B5345;
     color: white;
@@ -65,12 +64,6 @@ h2, h3, h4 {
     font-weight: 700 !important;
 }
 
-/* Divider Style */
-hr {
-    border: 1px solid #C8E6C9;
-    margin: 2rem 0;
-}
-
 /* Metric Cards */
 [data-testid="stMetricValue"] {
     color: #0B5345 !important;
@@ -92,17 +85,41 @@ div.stButton > button:hover {
     background: linear-gradient(to right, #138808, #FF9933);
 }
 
-/* Expander Box */
+/* Expander */
 .streamlit-expanderHeader {
     font-weight: bold;
     color: #145A32 !important;
+}
+
+/* Footer Styling */
+footer {
+    visibility: hidden;
+}
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(to right, #0B5345, #145A32);
+    color: white;
+    text-align: center;
+    padding: 0.6rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+.footer a {
+    color: #FF9933;
+    text-decoration: none;
+    font-weight: 600;
+}
+.footer a:hover {
+    text-decoration: underline;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
-# --- 2. DATA INGESTION AND KNOWLEDGE BASE SETUP ---
-
+# --- 2. DATA INGESTION ---
 @st.cache_data
 def load_and_process_data():
     try:
@@ -148,12 +165,12 @@ def load_and_process_data():
 
     return imd_df, imd_insights, crop_df, crop_metrics
 
+
 imd_df, imd_insights, crop_df, crop_metrics = load_and_process_data()
 
 
-# --- 3. CORE FUNCTIONS (same as your original version) ---
-
-def query_imd_data(query: str, df: pd.DataFrame, insights: dict) -> str:
+# --- 3. RAG + Gemini ---
+def query_imd_data(query, df, insights):
     summary_context = "\n".join([f"- {k}: {v}" for k, v in insights.items() if k not in ['hottest_decade_mean', 'baseline_temp']])
     if any(k in query.lower() for k in ['warming', 'baseline', 'decade', 'climate', 'trend']):
         return f"CLIMATE SUMMARY INSIGHTS:\n{summary_context}"
@@ -163,7 +180,7 @@ def query_imd_data(query: str, df: pd.DataFrame, insights: dict) -> str:
     return "IMD data not available."
 
 
-def query_crop_data(query: str, df: pd.DataFrame) -> str:
+def query_crop_data(query, df):
     if any(k in query.lower() for k in ['crop_type', 'drought', 'water-intensive', 'andhra pradesh', 'production']):
         state = 'Andhra Pradesh'
         df_filtered = df[df['State'] == state]
@@ -186,20 +203,19 @@ def setup_gemini_client():
         return None
 
 
-def ask_samarth_agent(client, user_question: str) -> str:
+def ask_samarth_agent(client, user_question):
     climate_context = query_imd_data(user_question, imd_df, imd_insights)
     crop_context = query_crop_data(user_question, crop_df)
     system_prompt = (
-        "You are 'Project Samarth,' an intelligent data policy agent for Build For Bharat Fellowship 2026. "
-        "Your role is to analyze and synthesize insights from IMD (Climate) and Ministry of Agriculture datasets. "
-        "Cite all numbers and data points accurately, and ensure policy-focused clarity."
+        "You are 'Project Samarth,' an intelligent policy data agent for Build For Bharat Fellowship 2026. "
+        "Analyze and synthesize insights from IMD and Agriculture Ministry datasets accurately with sources."
     )
     prompt = f"""
     SYSTEM PROMPT: {system_prompt}
     --- CLIMATE DATA (IMD) ---
     Source: {imd_insights['source']}
     {climate_context}
-    --- CROP DATA (Agriculture) ---
+    --- AGRICULTURE DATA ---
     Source: {crop_metrics['source']}
     {crop_context}
     USER QUESTION: {user_question}
@@ -211,8 +227,7 @@ def ask_samarth_agent(client, user_question: str) -> str:
         return f"API ERROR: {e}"
 
 
-# --- 4. FRONTEND ---
-
+# --- 4. FRONT-END ---
 client = setup_gemini_client()
 
 st.markdown("<h1 class='stTitle'>🇮🇳 Build For Bharat Fellowship 2026 Cohort (Data Science)</h1>", unsafe_allow_html=True)
@@ -231,7 +246,6 @@ col3.metric("Drought-Tolerant Output", f"{crop_metrics['drought_tolerant_prod']/
 
 st.divider()
 
-# Sidebar
 with st.sidebar:
     st.image("https://upload.wikimedia.org/wikipedia/en/4/41/Emblem_of_India.svg", width=80)
     st.header("🧠 Samarth Agent Controls")
@@ -248,7 +262,7 @@ user_query = st.text_area("💬 Ask the Samarth Policy Agent", value=sample_ques
 
 if st.button("🔍 Generate Policy Insight"):
     if user_query:
-        with st.spinner("Consulting the datasets..."):
+        with st.spinner("Consulting datasets..."):
             answer = ask_samarth_agent(client, user_query)
         st.subheader("🧭 Policy Insight (AI-Synthesized)")
         st.markdown(answer)
@@ -258,3 +272,11 @@ if st.button("🔍 Generate Policy Insight"):
                 st.code(f"--- AGRICULTURE DATA ---\n{query_crop_data(user_query, crop_df)}", language='markdown')
     else:
         st.warning("Please enter a question.")
+
+# --- FOOTER ---
+st.markdown("""
+<div class="footer">
+    Built with by <strong>Gopichand</strong> | Project Samarth — Build For Bharat Fellowship 2026 Cohort (Data Science)<br>
+    🌐 <a href="https://www.linkedin.com/in/gopichand16" target="_blank">Connect on LinkedIn</a> | 📧 gopichandchalla516@gmail.com
+</div>
+""", unsafe_allow_html=True)
