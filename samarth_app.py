@@ -284,7 +284,6 @@ st.markdown("""
     padding: 10px 0;
     line-height: 1.6;
 ">
-    <strong>Built with by Gopichand</strong> — <em>Where open data becomes open wisdom.</em><br>
-    <span style="font-size: 13px; color: #777;">© 2025 Project Samarth | Empowering Governance with AI & Insight</span>
+    <span style="font-size: 13px; color: #777;">© 2025 Project Samarth | Build For Bharat Fellowship 2026 Cohort (Data Science)</span>
 </div>
 """, unsafe_allow_html=True)
